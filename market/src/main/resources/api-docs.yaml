@@ -1,0 +1,258 @@
+openapi: 3.1.1
+info:
+  title: Market Service API
+  version: 1.0.0
+paths:
+  /companies:
+    get:
+      summary: Retrieve all companies in market
+      operationId: getAllCompanies
+      responses:
+        "200":
+          description: A list of companies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Company"
+        "404":
+          description: Companies not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      summary: Add a company to the market.
+      operationId: addCompanyToMarket
+      parameters:
+        - $ref: "#/components/parameters/CompanyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Company"
+      responses:
+        "200":
+          description: Company added.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+          headers:
+            Content-Location:
+              description: Location of company.
+              schema:
+                type: string
+        "400":
+          description: Bad request. Companies are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /companies/{companyId}:
+    get:
+      summary: Retrieves a company by its unique ID.
+      operationId: getCompany
+      parameters: # list of parameters, must define each starting with -
+        - $ref: "#/components/parameters/CompanyId"
+      responses:
+        "200":
+          description: A company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Company"
+        "400":
+          $ref: "#/components/responses/InvalidCompanyId"
+        "404":
+          $ref: "#/components/responses/CompanyNotFound"
+    delete:
+      summary: Remove a company from the market.
+      operationId: removeCompanyFromMarket
+      parameters:
+        - $ref: "#/components/parameters/CompanyId"
+      responses:
+        "204":
+          description: Company removed from market.
+        "400":
+          $ref: "#/components/responses/InvalidCompanyId"
+        "404":
+          $ref: "#/components/responses/CompanyNotFound"
+
+  # Note on use of path parameters vs. query
+  # query is used to filter, search, or modify request to resource
+    # e.g. GET /companies?id=123 - search for companies with ID 123
+  # path represents a specific resource, use when directly addressing
+    # e.g. POST /companies/123/buy - buy shares from company 123
+  /companies/{companyId}/buy:
+    # resource modification with POST, PUT, PATCH should occur in request body
+    post:
+      summary: Buys shares from company by company ID
+      operationId: buyCompanyShares
+      parameters:
+        - $ref: "#/components/parameters/CompanyId"
+      requestBody:
+        $ref: "#/components/requestBodies/TradeRequestBody"
+      responses:
+        "200":
+          description: Shares purchased.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+          headers:
+            Content-Location:
+              description: Location of trade.
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/InvalidCompanyId"
+        "404":
+          $ref: "#/components/responses/CompanyNotFound"
+  /companies/{companyId}/sell:
+    post:
+      summary: Sells shares of a company by ID
+      operationId: sellCompanyShares
+      parameters:
+        - $ref: "#/components/parameters/CompanyId"
+      requestBody:
+        $ref: "#/components/requestBodies/TradeRequestBody"
+      responses:
+        "200":
+          description: Shares sold.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+          headers:
+            Content-Location:
+              description: Location of trade.
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/InvalidCompanyId"
+        "404":
+          # ref is used to reference common components
+          # '#/' is a JSON pointer
+          # '#' refers to current document and path follows
+          $ref: "#/components/responses/CompanyNotFound"
+  /trades:
+    get:
+      summary: Get trade history of market
+      operationId: getTradeHistory
+      parameters:
+        - name: companyId
+          in: query
+          schema:
+            type: integer
+            # param value defaults to null if client does not specify
+            default: null
+            nullable: true
+          description: Company ID for specific company's trade history
+      responses:
+        "200":
+          description: Trade history for compan(y)/(ies)  on market
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trade"
+        "400":
+          $ref: "#/components/responses/InvalidCompanyId"
+        "404":
+          $ref: "#/components/responses/CompanyNotFound"
+
+
+# Descriptions of common components
+components:
+  # defining common request parameters
+  parameters:
+    CompanyId:
+      name: companyId
+      in: path # location of parameter - e.g. companyId located in url path
+      schema: # define structure of parameter
+        type: int
+      description: Company ID
+      required: true # path parameters always required
+  # define common HTTP response blocks
+  responses:
+    InvalidCompanyId:
+      description: Bad request. Company ID in an invalid format.
+      content:
+        application/json:
+          # response must follow structure defined in Error schema
+          schema:
+            $ref: "#/components/schemas/Error"
+    CompanyNotFound:
+      description: Company with specified ID not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  # defining common HTTP request bodies
+  requestBodies:
+    TradeRequestBody:
+      required: true # payload is required
+      description: Payload for buying or selling shares
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quantity:
+                type: integer
+                description: Number of shares to trade.
+            required:
+              - quantity # quantity property is required in payload object
+  # Define common data models (e.g response / request structure)
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+    Trade:
+      type: object
+      properties:
+        clientId:
+          type: integer
+        companyId:
+          type: integer
+        companyName:
+          type: string
+        quantityPurchased:
+          type: number
+        sharePrice:
+          type: number
+      required:
+        - clientId
+        - companyId
+        - companyName
+        - quantityPurchased
+        - sharePrice
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sharePrice:
+          type: number
+        shareMultiplier:
+          type: number
+        numShares:
+          type: integer
+      required:
+        - id
+        - name
+        - sharePrice
+        - numShares

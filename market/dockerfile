@@ -1,0 +1,9 @@
+FROM openjdk:17-slim
+
+WORKDIR /app
+
+COPY target/market-service.jar /app/market-service.jar
+
+EXPOSE 8082
+
+ENTRYPOINT ["java", "-jar", "market-service.jar"]

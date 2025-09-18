@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  bank-service:
+    build: ./bank
+    ports:
+      - "8080:8080"
+    networks:
+      - banking-network
+
+  company-service:
+    build: ./company
+    ports:
+      - "8081:8081"
+    networks:
+      - banking-network
+    depends_on:
+      - bank-service
+
+  market-service:
+    build: ./market
+    ports:
+      - "8082:8082"
+    networks:
+      - banking-network
+    depends_on:
+      - bank-service
+      - company-service
+
+  player-service:
+    build: ./player
+    ports:
+      - "8083:8083"
+    networks:
+      - banking-network
+    depends_on:
+      - bank-service
+      - market-service
+
+networks:
+  banking-network:
+    driver: bridge

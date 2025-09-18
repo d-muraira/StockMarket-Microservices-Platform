@@ -1,0 +1,5 @@
+# ignore build artifacts
+/target/
+/.idea/
+# IntelliJ specific files
+/*.iml
